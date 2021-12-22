@@ -58,7 +58,7 @@ public partial class AudioPlayerTestPage : ComponentBase, IAudioPlayerBackend, I
             StateHasChanged();
             _cts = new CancellationTokenSource();
             var audioDownloader = new AudioDownloader(Services);
-            var audioSource = await audioDownloader.Download(new Uri(_uri), TimeSpan.Zero, _cts.Token).ConfigureAwait(true);
+            var audioSource = await audioDownloader.Download(new Uri(_uri), new AudioMetadata(), TimeSpan.Zero, _cts.Token).ConfigureAwait(true);
             var blazorRef = DotNetObjectReference.Create<IAudioPlayerBackend>(this);
             var jsRef = await JS.InvokeAsync<IJSObjectReference>(
                 $"{AudioBlazorUIModule.ImportName}.AudioPlayerTestPage.create",
@@ -85,7 +85,7 @@ public partial class AudioPlayerTestPage : ComponentBase, IAudioPlayerBackend, I
                 }
             });
             var frames = await audioSource.GetFrames(_cts.Token).ToArrayAsync(_cts.Token).ConfigureAwait(true);
-            await jsRef.InvokeVoidAsync("initialize", _cts.Token, audioSource.Format.ToBlobPart().Data).ConfigureAwait(true);
+            await jsRef.InvokeVoidAsync("initialize", _cts.Token, audioSource.Format.Serialize()).ConfigureAwait(true);
             foreach (var frame in frames) {
                 if (false) {
                     Log.LogInformation(
