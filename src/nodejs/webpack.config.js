@@ -3,6 +3,8 @@
 
 const path = require('path');
 const webpack = require('webpack');
+const FileManagerPlugin = require('filemanager-webpack-plugin');
+
 /**
  * @param {string} file
  */
@@ -46,6 +48,7 @@ class WatchRunPlugin {
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 const outputPath = _('./../dotnet/UI.Blazor.Host/wwwroot/dist');
+const mauiOutputPath = _('./../dotnet/ClientApp/wwwroot/dist');
 
 module.exports = (env, args) => {
 
@@ -108,6 +111,16 @@ module.exports = (env, args) => {
     // another type of inlined source maps
     //devtool: isDevelopment ? 'eval' : false,
     plugins: [
+      // @ts-ignore
+      new FileManagerPlugin({
+        events: {
+          onEnd: {
+            copy: [
+              { source: outputPath, destination: mauiOutputPath },
+            ],
+          }
+        }
+      }),
       // @ts-ignore
       new MiniCssExtractPlugin({
         filename: '[name].css',
