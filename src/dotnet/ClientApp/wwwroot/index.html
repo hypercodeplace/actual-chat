@@ -9,9 +9,41 @@
     <link href="/dist/bundle.css" rel="stylesheet" />
     <link href="_content/Blazor.ContextMenu/blazorContextMenu.min.css" rel="stylesheet" />
     <link href="_content/Blazored.Modal/blazored-modal.css" rel="stylesheet" />
-    <script src="_content/Stl.Fusion.Blazor/scripts/fusionAuth.js"></script>
     <script>
-        window.FusionAuth.schemas = 'Google|Google|Microsoft|Microsoft';
+        (function () {
+            let openAuthWindow = function (action, flowName) {
+                return FusionAuth.openAuthWindow(action, flowName);
+            };
+            window.FusionAuth = {
+                schemas: 'Google|Google|Microsoft|Microsoft',
+                signInPath: "signIn",
+                signOutPath: "signOut",
+                closePath: "fusion/close",
+
+                signIn: function (schema) {
+                    if (schema === undefined || schema === null || schema === "") {
+                        openAuthWindow(this.signInPath, "Sign-in");
+                    } else {
+                        openAuthWindow(this.signInPath + "/" + schema, "Sign-in");
+                    }
+                },
+
+                signOut: function () {
+                    openAuthWindow(this.signOutPath, "Sign-out");
+                },
+
+                openAuthWindow: function (action, flowName) {
+                    let encode = encodeURIComponent;
+                    let redirectUrl = new URL(this.closePath + "?flow=" + encode(flowName), window['_baseURI']).href;
+                    console.log(`redirectUrl: ${redirectUrl} baseUri: ${window['_baseURI']}`);
+                    let url = window['_baseURI'] + action + "?returnUrl=" + encode(redirectUrl);
+                    window.chrome.webview.postMessage(JSON.stringify({ type: '_navigateTo', url }));
+                    console.log("openAuthWindow is done")
+                }
+            };
+
+        })();
+
     </script>
 </head>
 

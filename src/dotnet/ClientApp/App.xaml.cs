@@ -2,11 +2,10 @@ namespace ActualChat.ClientApp
 {
     public partial class App : Application
     {
-        public App()
+        public App(ClientAppSettings settings)
         {
             InitializeComponent();
-
-            MainPage = new MainPage();
+            MainPage = new MainPage(settings);
         }
     }
 }
