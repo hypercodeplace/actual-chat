@@ -1,11 +1,14 @@
+using System.Net;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Web.WebView2.Core;
 using WebView2Control = Microsoft.UI.Xaml.Controls.WebView2;
 namespace ActualChat.ClientApp;
 
-
-
 public partial class MauiBlazorWebViewHandler
 {
+    private const string loopbackUrl = "http://127.0.0.1:57348/";
+
     private record JsMessage(string type, string url);
     /// <inheritdoc />
     protected override WebView2Control CreatePlatformView()
@@ -16,17 +19,8 @@ public partial class MauiBlazorWebViewHandler
             baseUri += '/';
         webview.EnsureCoreWebView2Async().AsTask().ContinueWith((t, state) => {
             var ctrl = (WebView2Control)state!;
-            ctrl.CoreWebView2.Settings.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.141 Safari/537.36";
-
-            ctrl.NavigationStarting += (WebView2Control sender, CoreWebView2NavigationStartingEventArgs args) => {
-
-            };
-
-            ctrl.CoreWebView2.NavigationStarting += (CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs args) => {
-
-            };
-
-            ctrl.WebMessageReceived += static (WebView2Control sender, CoreWebView2WebMessageReceivedEventArgs args) => {
+#pragma warning disable VSTHRD101 // Avoid unsupported async delegates
+            ctrl.WebMessageReceived += async (WebView2Control sender, CoreWebView2WebMessageReceivedEventArgs args) => {
                 var json = args.TryGetWebMessageAsString();
                 if (!string.IsNullOrWhiteSpace(json) && json.Length > 10 && json[0] == '{') {
                     try {
@@ -34,9 +28,44 @@ public partial class MauiBlazorWebViewHandler
                         if (msg == null)
                             return;
                         switch (msg.type) {
-                            case "_navigateTo":
+                            case "_auth":
+                                //var uri = new Uri(msg.url.Replace("/fusion/close-app?", $"/fusion/close-app?port={GetRandomUnusedPort()}&", StringComparison.Ordinal));
+                                var originalUri = sender.Source;
                                 sender.Source = new Uri(msg.url);
-                                Debug.WriteLine($"_navigateTo: {msg.url}");
+                                Debug.WriteLine($"_auth: {msg.url}");
+                                var http = new HttpListener();
+                                // TODO: use GetRandomUnusedPort()
+                                http.Prefixes.Add(loopbackUrl);
+                                http.Start();
+                                // wait for oauth2 response
+                                var context = await http.GetContextAsync().ConfigureAwait(true);
+                                var response = context.Response;
+                                string responseString = "<html><head></head><body>We are done, please, return to the app.</body></html>";
+                                byte[] buffer = Encoding.UTF8.GetBytes(responseString);
+                                response.ContentLength64 = buffer.Length;
+                                var responseOutput = response.OutputStream;
+                                await responseOutput.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(true);
+                                responseOutput.Close();
+                                http.Stop();
+                                var secret = context.Request.QueryString.Get("secret")
+                                    ?? throw new InvalidOperationException("Secret is null, something went wrong with auth.");
+                                Debug.WriteLine($"secret is: {secret}");
+                                var cookies = JsonSerializer.Deserialize<KeyValuePair<string, string>[]>(Encoding.UTF8.GetString(Convert.FromBase64String(secret)))
+                                    ?? throw new InvalidOperationException("Secret in wrong format, something went wrong with auth.");
+                                foreach (var (key, value) in cookies) {
+                                    var cookie = sender.CoreWebView2.CookieManager.CreateCookie(key, value, "0.0.0.0", "/");
+                                    sender.CoreWebView2.CookieManager.AddOrUpdateCookie(cookie);
+                                    cookie = sender.CoreWebView2.CookieManager.CreateCookie(key, value, new Uri(baseUri).Host, "/");
+                                    sender.CoreWebView2.CookieManager.AddOrUpdateCookie(cookie);
+
+                                    if(string.Equals(key, "FusionAuth.SessionId", StringComparison.Ordinal)) {
+                                        string path = Path.Combine(FileSystem.AppDataDirectory, "session.txt");
+                                        await File.WriteAllTextAsync(path, value).ConfigureAwait(true);
+                                    }
+
+                                }
+
+                                sender.Source = originalUri;
                                 break;
                             default:
                                 throw new InvalidOperationException($"Unknown message type: {msg.type}");
@@ -48,11 +77,10 @@ public partial class MauiBlazorWebViewHandler
                 }
             };
 
-#pragma warning disable VSTHRD101 // Avoid unsupported async delegates
+
             ctrl.CoreWebView2.DOMContentLoaded += async (_, __) => {
                 try {
-                    await webview.CoreWebView2.ExecuteScriptAsync($"window['_baseURI'] = '{baseUri}'; audio.OpusMediaRecorder.origin='{baseUri}'; " +
-                        "window.navigator.userAgentData = [{\"brand\": \"Chromium\", \"version\": \"98\"},{\"brand\": \" Not A;Brand\",\"version\": \"99\"}]; ");
+                    await webview.CoreWebView2.ExecuteScriptAsync($"window['_baseURI'] = '{baseUri}'; audio.OpusMediaRecorder.origin='{baseUri}'; ");
                 }
                 catch (Exception ex) {
                     Debug.WriteLine(ex.ToString());

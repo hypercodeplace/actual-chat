@@ -18,7 +18,7 @@
                 schemas: 'Google|Google|Microsoft|Microsoft',
                 signInPath: "signIn",
                 signOutPath: "signOut",
-                closePath: "fusion/close",
+                closePath: "fusion/close-app",
 
                 signIn: function (schema) {
                     if (schema === undefined || schema === null || schema === "") {
@@ -27,7 +27,6 @@
                         openAuthWindow(this.signInPath + "/" + schema, "Sign-in");
                     }
                 },
-
                 signOut: function () {
                     openAuthWindow(this.signOutPath, "Sign-out");
                 },
@@ -37,13 +36,11 @@
                     let redirectUrl = new URL(this.closePath + "?flow=" + encode(flowName), window['_baseURI']).href;
                     console.log(`redirectUrl: ${redirectUrl} baseUri: ${window['_baseURI']}`);
                     let url = window['_baseURI'] + action + "?returnUrl=" + encode(redirectUrl);
-                    window.chrome.webview.postMessage(JSON.stringify({ type: '_navigateTo', url }));
-                    console.log("openAuthWindow is done")
+                    window.chrome.webview.postMessage(JSON.stringify({ type: '_auth', url }));
                 }
             };
 
         })();
-
     </script>
 </head>
 

@@ -107,7 +107,7 @@ public class UsersServiceModule : HostModule<UsersSettings>
 
         // Auth services
         var fusionAuth = fusion.AddAuthentication();
-        services.TryAddScoped<ServerAuthHelper>(); // Replacing the default one w/ own
+        services.TryAddScoped<Stl.Fusion.Server.Authentication.ServerAuthHelper, ServerAuthHelper>(); // Replacing the default one w/ own
         fusionAuth.AddServer(
             signInControllerSettingsFactory: _ => SignInController.DefaultSettings with {
                 DefaultScheme = GoogleDefaults.AuthenticationScheme,
@@ -117,6 +117,7 @@ public class UsersServiceModule : HostModule<UsersSettings>
             },
             serverAuthHelperSettingsFactory: _ => new() {
                 NameClaimKeys = Array.Empty<string>(),
+
             });
 
         // Module's own services

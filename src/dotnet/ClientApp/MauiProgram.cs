@@ -37,12 +37,14 @@ public static class MauiProgram
         builder.Configuration.AddJsonFile(
             fileprovider,
             "appsettings.Development.json",
-            optional: false,
+            // TODO: fix android fs access
+            optional: true,
             reloadOnChange: false);
         builder.Configuration.AddJsonFile(
             fileprovider,
+            // TODO: fix android fs access
             "appsettings.json",
-            optional: false,
+            optional: true,
             reloadOnChange: false);
         var services = builder.Services;
         services.AddBlazorWebView();
