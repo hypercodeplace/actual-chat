@@ -34,6 +34,7 @@ public class UsersDbInitializer : DbInitializer<UsersDbContext>
                         Secret = "",
                     },
                 },
+                Status = UserStatus.Active,
             });
             var avatarId = Ulid.NewUlid().ToString();
             dbContext.UserAvatars.Add(new DbUserAvatar() {

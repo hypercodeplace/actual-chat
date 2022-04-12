@@ -12,6 +12,7 @@ public class UserProfilesBackend : DbServiceBase<UsersDbContext>, IUserProfilesB
     private IUserAuthorsBackend? _userAuthorsBackend; // Dep. cycle elimination
 
     private IAuthBackend AuthBackend { get; }
+
     private IUserAuthorsBackend UserAuthorsBackend
         => _userAuthorsBackend ??= Services.GetRequiredService<IUserAuthorsBackend>();
     private DbUserByNameResolver DbUserByNameResolver { get; }
@@ -25,7 +26,7 @@ public class UserProfilesBackend : DbServiceBase<UsersDbContext>, IUserProfilesB
     // [ComputeMethod]
     public virtual async Task<UserProfile?> Get(string userId, CancellationToken cancellationToken)
     {
-        var user = await AuthBackend.GetUser(userId, cancellationToken).ConfigureAwait(false);
+        var user = await AuthBackend.GetUser(userId).ConfigureAwait(false);
         return await ToUserProfile(user, cancellationToken).ConfigureAwait(false);
     }
 
@@ -37,6 +38,29 @@ public class UserProfilesBackend : DbServiceBase<UsersDbContext>, IUserProfilesB
 
         var user = await AuthBackend.GetUser(dbUser.Id, cancellationToken).ConfigureAwait(false);
         return await ToUserProfile(user, cancellationToken).ConfigureAwait(false);
+    }
+
+
+
+    // [CommandHandler]
+    public virtual async Task UpdateStatus(
+        IUserProfilesBackend.UpdateStatusCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        if (Computed.IsInvalidating()) {
+            _ = AuthBackend.GetUser(command.UserId, default);
+            return;
+        }
+
+        var context = await CreateCommandDbContext(cancellationToken).ConfigureAwait(false);
+        await using var __ = context.ConfigureAwait(false);
+
+        var dbUser = await context.Users.FindAsync(new object?[] { command.UserId }, cancellationToken)
+                .ConfigureAwait(false)
+            ?? throw new KeyNotFoundException($"User with id='{command.UserId}' not found");
+        dbUser.Status = command.NewStatus;
+        context.Users.Update(dbUser);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     // Private methods

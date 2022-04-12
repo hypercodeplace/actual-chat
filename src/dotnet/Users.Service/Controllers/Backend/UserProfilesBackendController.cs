@@ -19,4 +19,8 @@ public class UserProfilesBackendController : ControllerBase, IUserProfilesBacken
     [HttpGet, Publish]
     public Task<UserProfile?> GetByName(string name, CancellationToken cancellationToken)
         => _service.GetByName(name, cancellationToken);
+
+    [HttpPost]
+    public Task UpdateStatus([FromBody] IUserProfilesBackend.UpdateStatusCommand command, CancellationToken ct = default)
+        => _service.UpdateStatus(command, ct);
 }

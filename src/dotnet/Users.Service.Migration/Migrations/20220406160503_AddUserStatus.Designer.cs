@@ -3,6 +3,7 @@ using System;
 using ActualChat.Users.Db;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,10 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ActualChat.Users.Migrations.Migrations
 {
     [DbContext(typeof(UsersDbContext))]
-    partial class UsersDbContextModelSnapshot : ModelSnapshot
+    [Migration("20220406160503_AddUserStatus")]
+    partial class AddUserStatus
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,22 +23,6 @@ namespace ActualChat.Users.Migrations.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("ActualChat.Users.Db.DbChatReadPosition", b =>
-                {
-                    b.Property<string>("UserId")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ChatId")
-                        .HasColumnType("text");
-
-                    b.Property<long>("EntryId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("UserId", "ChatId");
-
-                    b.ToTable("ChatReadPositions");
-                });
 
             modelBuilder.Entity("ActualChat.Users.Db.DbChatUserSettings", b =>
                 {
