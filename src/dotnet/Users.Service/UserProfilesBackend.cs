@@ -59,7 +59,6 @@ public class UserProfilesBackend : DbServiceBase<UsersDbContext>, IUserProfilesB
                 .ConfigureAwait(false)
             ?? throw new KeyNotFoundException($"User with id='{command.UserId}' not found");
         dbUser.Status = command.NewStatus;
-        context.Users.Update(dbUser);
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
